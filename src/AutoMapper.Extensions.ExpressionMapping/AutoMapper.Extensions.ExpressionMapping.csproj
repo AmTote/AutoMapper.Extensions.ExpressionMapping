@@ -13,8 +13,9 @@
     <PackageProjectUrl>http://automapper.org</PackageProjectUrl>
     <PackageLicenseUrl>https://github.com/AutoMapper/AutoMapper.Extensions.ExpressionMapping/blob/master/LICENSE</PackageLicenseUrl>
     <RepositoryType>git</RepositoryType>
-    <RepositoryUrl>https://github.com/AutoMapper/AutoMapper.Extensions.ExpressionMapping</RepositoryUrl>
+    <RepositoryUrl>https://github.com/Amtote/AutoMapper.Extensions.ExpressionMapping</RepositoryUrl>
     <MinVerTagPrefix>v</MinVerTagPrefix>
+    <MinVerDefaultPreReleasePhase>amtote</MinVerDefaultPreReleasePhase>
   </PropertyGroup>
 
   <ItemGroup>

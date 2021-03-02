@@ -28,8 +28,8 @@ jobs:
     - name: Pack and push
       env:
         PROJECT_NAME: AutoMapper.Extensions.ExpressionMapping
-        DEPLOY_PACKAGE_URL: https://www.myget.org/F/automapperdev/api/v3/index.json
-        DEPLOY_PACKAGE_API_KEY: ${{ secrets.MYGET_CI_API_KEY }}
+        DEPLOY_PACKAGE_URL: https://nuget.api.1stbet.com/v3/index.json
+        DEPLOY_PACKAGE_API_KEY: ${{ secrets.NUGET_API_KEY }}
         REPO: ${{ github.repository }}
         REPO_OWNER: ${{ github.repository_owner }}
       run: ./Pack_Push.ps1
