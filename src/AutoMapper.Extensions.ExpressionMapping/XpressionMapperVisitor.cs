@@ -699,19 +699,19 @@ namespace AutoMapper.Extensions.ExpressionMapping
                 if (propertyMap.CustomMapExpression == null && !propertyMap.SourceMembers.Any())
                     throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, Resource.srcMemberCannotBeNullFormat, typeSource.Name, typeDestination.Name, sourceFullName));
 
-                CompareSourceAndDestLiterals
-                (
-                    propertyMap.CustomMapExpression != null ? propertyMap.CustomMapExpression.ReturnType : propertyMap.SourceMember.GetMemberType(),
-                    propertyMap.CustomMapExpression != null ? propertyMap.CustomMapExpression.ToString() : propertyMap.SourceMember.Name,
-                    sourceMemberInfo.GetMemberType()
-                );
+                // CompareSourceAndDestLiterals
+                // (
+                //     propertyMap.CustomMapExpression != null ? propertyMap.CustomMapExpression.ReturnType : propertyMap.SourceMember.GetMemberType(),
+                //     propertyMap.CustomMapExpression != null ? propertyMap.CustomMapExpression.ToString() : propertyMap.SourceMember.Name,
+                //     sourceMemberInfo.GetMemberType()
+                // );
 
-                void CompareSourceAndDestLiterals(Type mappedPropertyType, string mappedPropertyDescription, Type sourceMemberType)
-                {
-                    //switch from IsValueType to IsLiteralType because we do not want to throw an exception for all structs
-                    if ((mappedPropertyType.IsLiteralType() || sourceMemberType.IsLiteralType()) && sourceMemberType != mappedPropertyType)
-                        throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, Resource.expressionMapValueTypeMustMatchFormat, mappedPropertyType.Name, mappedPropertyDescription, sourceMemberType.Name, propertyMap.GetDestinationName()));
-                }
+                // void CompareSourceAndDestLiterals(Type mappedPropertyType, string mappedPropertyDescription, Type sourceMemberType)
+                // {
+                //     //switch from IsValueType to IsLiteralType because we do not want to throw an exception for all structs
+                //     if ((mappedPropertyType.IsLiteralType() || sourceMemberType.IsLiteralType()) && sourceMemberType != mappedPropertyType)
+                //         throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, Resource.expressionMapValueTypeMustMatchFormat, mappedPropertyType.Name, mappedPropertyDescription, sourceMemberType.Name, propertyMap.GetDestinationName()));
+                // }
 
                 if (propertyMap.ProjectToCustomSource != null)
                     propertyMapInfoList.Add(new PropertyMapInfo(propertyMap.ProjectToCustomSource, new List<MemberInfo>()));
