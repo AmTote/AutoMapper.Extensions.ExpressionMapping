@@ -15,7 +15,6 @@
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/Amtote/AutoMapper.Extensions.ExpressionMapping</RepositoryUrl>
     <MinVerTagPrefix>v</MinVerTagPrefix>
-    <MinVerDefaultPreReleasePhase>amtote</MinVerDefaultPreReleasePhase>
   </PropertyGroup>
 
   <ItemGroup>
