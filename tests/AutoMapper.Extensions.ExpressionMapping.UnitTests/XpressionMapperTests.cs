@@ -1019,7 +1019,7 @@ namespace AutoMapper.Extensions.ExpressionMapping.UnitTests
 
             Assert.Equal
             (//parameters ch and c are of the same type
-                "c => ((c.Finished == null) AndAlso Not(c.Part.History.Any(ch => (ch.Started > c.Started))))",
+                "c => ((c.Finished == null) AndAlso Not(c.Part.History.Any(ch => (ch.Started > c.Started))))", 
                 mappedExpression.ToString()
             );
         }
@@ -1613,10 +1613,13 @@ namespace AutoMapper.Extensions.ExpressionMapping.UnitTests
 
             CreateMap<ListParentExtension, ListParent>()
                 .ReverseMap();
+
             CreateMap<ListExtension, List<string>>()
+                    .ForMember(d => d.Count, opt => opt.MapFrom(s => s.Count))
+                    .ForMember("Item", op => op.Ignore());
+            CreateMap<List<string>, ListExtension>()
                 .ForMember(d => d.Count, opt => opt.MapFrom(s => s.Count))
-                .ReverseMap()
-                .ForMember(d => d.Count, opt => opt.MapFrom(s => s.Count));
+                .ForMember("Item", op => op.Ignore());
 
             CreateMap<Branch, BranchModel>();
 

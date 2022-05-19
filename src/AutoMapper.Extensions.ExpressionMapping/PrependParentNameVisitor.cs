@@ -1,7 +1,7 @@
-﻿using System.Linq;
+﻿using AutoMapper.Extensions.ExpressionMapping.Extensions;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Runtime.CompilerServices;
-using AutoMapper.Extensions.ExpressionMapping.Extensions;
 
 namespace AutoMapper.Extensions.ExpressionMapping
 {
