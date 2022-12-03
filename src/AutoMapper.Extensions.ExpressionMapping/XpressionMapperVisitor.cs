@@ -95,8 +95,17 @@ namespace AutoMapper.Extensions.ExpressionMapping
                         mappedParentExpression
                     );
 
+
                     if (node.Type.IsLiteralType())
-                        fromCustomExpression = fromCustomExpression.ConvertTypeIfNecessary(node.Type);
+                        try
+                        {
+                            fromCustomExpression = fromCustomExpression.ConvertTypeIfNecessary(node.Type);
+                        }
+                        catch (InvalidOperationException)
+                        {
+                            // ignore, the properties are not two primitive convertable types
+                        }
+
 
                     this.TypeMappings.AddTypeMapping(ConfigurationProvider, node.Type, fromCustomExpression.Type);
                     return fromCustomExpression;
@@ -104,7 +113,14 @@ namespace AutoMapper.Extensions.ExpressionMapping
 
                 Expression memberExpression = GetMemberExpressionFromMemberMaps(BuildFullName(propertyMapInfoList), mappedParentExpression);
                 if (node.Type.IsLiteralType())
-                    memberExpression = memberExpression.ConvertTypeIfNecessary(node.Type);
+                    try
+                    {
+                        memberExpression = memberExpression.ConvertTypeIfNecessary(node.Type);
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // ignore, the properties are not two primitive convertable types
+                    }
 
                 this.TypeMappings.AddTypeMapping(ConfigurationProvider, node.Type, memberExpression.Type);
 
