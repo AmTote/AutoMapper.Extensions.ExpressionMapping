@@ -95,11 +95,17 @@ namespace AutoMapper.Extensions.ExpressionMapping
                         mappedParentExpression
                     );
 
+                    if (ShouldConvertMemberExpression(node.Type, fromCustomExpression.Type))
+                        fromCustomExpression = fromCustomExpression.ConvertTypeIfNecessary(node.Type);
+
                     this.TypeMappings.AddTypeMapping(ConfigurationProvider, node.Type, fromCustomExpression.Type);
                     return fromCustomExpression;
                 }
 
-                var memberExpression = GetMemberExpressionFromMemberMaps(BuildFullName(propertyMapInfoList), mappedParentExpression);
+                Expression memberExpression = GetMemberExpressionFromMemberMaps(BuildFullName(propertyMapInfoList), mappedParentExpression);
+                if (ShouldConvertMemberExpression(node.Type, memberExpression.Type))
+                    memberExpression = memberExpression.ConvertTypeIfNecessary(node.Type);
+
                 this.TypeMappings.AddTypeMapping(ConfigurationProvider, node.Type, memberExpression.Type);
 
                 return memberExpression;
@@ -132,6 +138,23 @@ namespace AutoMapper.Extensions.ExpressionMapping
                         ? lastWithCustExpression.CustomExpression.Body.MemberAccesses(afterCustExpression)
                         : lastWithCustExpression.CustomExpression.Body
                 );
+        }
+
+        private bool ShouldConvertMemberExpression(Type initialType, Type mappedType)
+        {
+            if (initialType.IsLiteralType())
+                return true;
+
+            if (!initialType.IsEnumType())
+                return false;
+
+            if (initialType.IsNullableType())
+                initialType = Nullable.GetUnderlyingType(initialType);
+
+            if (mappedType.IsNullableType())
+                mappedType = Nullable.GetUnderlyingType(mappedType);
+
+            return mappedType == Enum.GetUnderlyingType(initialType);
         }
 
         protected Expression GetMemberExpressionFromCustomExpression(List<PropertyMapInfo> propertyMapInfoList, PropertyMapInfo lastWithCustExpression, Expression mappedParentExpr) 
@@ -382,7 +405,7 @@ namespace AutoMapper.Extensions.ExpressionMapping
         private MemberInfo GetSourceMember(PropertyMap propertyMap)
             => propertyMap.CustomMapExpression != null
                 ? propertyMap.CustomMapExpression.GetMemberExpression()?.Member
-                : propertyMap.SourceMember;
+                : propertyMap.SourceMembers.Last();
 
         private MemberInfo GetParentMember(PropertyMap propertyMap)
             => propertyMap.IncludedMember?.ProjectToCustomSource != null
@@ -505,15 +528,19 @@ namespace AutoMapper.Extensions.ExpressionMapping
 
         protected override Expression VisitConstant(ConstantExpression node)
         {
-            if (this.TypeMappings.TryGetValue(node.Type, out Type newType))
+            Type newType = this.TypeMappings.ReplaceType(node.Type);
+            if (newType != node.Type)
             {
                 if (node.Value == null)
                     return base.VisitConstant(Expression.Constant(null, newType));
 
-                if (ConfigurationProvider.Internal().ResolveTypeMap(node.Type, newType) != null)
+                if (ConfigurationProvider.CanMapConstant(node.Type, newType))
                     return base.VisitConstant(Expression.Constant(Mapper.MapObject(node.Value, node.Type, newType), newType));
                 //Issue 3455 (Non-Generic Mapper.Map failing for structs in v10)
                 //return base.VisitConstant(Expression.Constant(Mapper.Map(node.Value, node.Type, newType), newType));
+
+                if (typeof(Expression).IsAssignableFrom(node.Type))
+                    return Expression.Constant(this.Visit((Expression)node.Value), newType);
             }
             return base.VisitConstant(node);
         }
@@ -545,9 +572,19 @@ namespace AutoMapper.Extensions.ExpressionMapping
                     : GetInstanceExpression(this.Visit(node.Object));
 
             MethodCallExpression GetInstanceExpression(Expression instance)
-                => node.Method.IsGenericMethod
-                    ? Expression.Call(instance, node.Method.Name, typeArgsForNewMethod.ToArray(), listOfArgumentsForNewMethod.ToArray())
-                    : Expression.Call(instance, node.Method, listOfArgumentsForNewMethod.ToArray());
+            {
+                return node.Method.IsGenericMethod
+                            ? Expression.Call(instance, node.Method.Name, typeArgsForNewMethod.ToArray(), listOfArgumentsForNewMethod.ToArray())
+                            : Expression.Call(instance, GetMethodInfoForNonGeneric(), listOfArgumentsForNewMethod.ToArray());
+
+                MethodInfo GetMethodInfoForNonGeneric()
+                {
+                    MethodInfo methodInfo = instance.Type.GetMethod(node.Method.Name, listOfArgumentsForNewMethod.Select(a => a.Type).ToArray());
+                    if (methodInfo.DeclaringType != instance.Type)
+                        methodInfo = methodInfo.DeclaringType.GetMethod(node.Method.Name, listOfArgumentsForNewMethod.Select(a => a.Type).ToArray());
+                    return methodInfo;
+                }
+            }
 
             MethodCallExpression GetStaticExpression()
                 => node.Method.IsGenericMethod
@@ -619,6 +656,23 @@ namespace AutoMapper.Extensions.ExpressionMapping
 
         protected void FindDestinationFullName(Type typeSource, Type typeDestination, string sourceFullName, List<PropertyMapInfo> propertyMapInfoList)
         {
+            if (typeSource.IsLiteralType()
+                && typeDestination.IsLiteralType()
+                && typeSource != typeDestination)
+            {
+                throw new InvalidOperationException
+                (
+                    string.Format
+                    (
+                        CultureInfo.CurrentCulture,
+                        Properties.Resources.makeParentTypesMatchForMembersOfLiteralsFormat,
+                        typeSource,
+                        typeDestination,
+                        sourceFullName
+                    )
+                );
+            }
+
             const string period = ".";
             bool BothTypesAreAnonymous()
                 => IsAnonymousType(typeSource) && IsAnonymousType(typeDestination);
@@ -694,27 +748,9 @@ namespace AutoMapper.Extensions.ExpressionMapping
             {
                 var propertyMap = typeMap.GetMemberMapByDestinationProperty(sourceFullName);
                 var sourceMemberInfo = typeSource.GetFieldOrProperty(propertyMap.GetDestinationName());
-                if (propertyMap.ValueResolverConfig != null)
-                {
-                    throw new InvalidOperationException(Resource.customResolversNotSupported);
-                }
 
                 if (propertyMap.CustomMapExpression == null && !propertyMap.SourceMembers.Any())
-                    throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, Resource.srcMemberCannotBeNullFormat, typeSource.Name, typeDestination.Name, sourceFullName));
-
-                // CompareSourceAndDestLiterals
-                // (
-                //     propertyMap.CustomMapExpression != null ? propertyMap.CustomMapExpression.ReturnType : propertyMap.SourceMember.GetMemberType(),
-                //     propertyMap.CustomMapExpression != null ? propertyMap.CustomMapExpression.ToString() : propertyMap.SourceMember.Name,
-                //     sourceMemberInfo.GetMemberType()
-                // );
-
-                // void CompareSourceAndDestLiterals(Type mappedPropertyType, string mappedPropertyDescription, Type sourceMemberType)
-                // {
-                //     //switch from IsValueType to IsLiteralType because we do not want to throw an exception for all structs
-                //     if ((mappedPropertyType.IsLiteralType() || sourceMemberType.IsLiteralType()) && sourceMemberType != mappedPropertyType)
-                //         throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, Resource.expressionMapValueTypeMustMatchFormat, mappedPropertyType.Name, mappedPropertyDescription, sourceMemberType.Name, propertyMap.GetDestinationName()));
-                // }
+                    throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, Properties.Resources.srcMemberCannotBeNullFormat, typeSource.Name, typeDestination.Name, sourceFullName));
 
                 if (propertyMap.IncludedMember?.ProjectToCustomSource != null)
                     propertyMapInfoList.Add(new PropertyMapInfo(propertyMap.IncludedMember.ProjectToCustomSource, new List<MemberInfo>()));
@@ -728,7 +764,7 @@ namespace AutoMapper.Extensions.ExpressionMapping
 
                 var sourceMemberInfo = typeSource.GetFieldOrProperty(propertyMap.GetDestinationName());
                 if (propertyMap.CustomMapExpression == null && !propertyMap.SourceMembers.Any())//If sourceFullName has a period then the SourceMember cannot be null.  The SourceMember is required to find the ProertyMap of its child object.
-                    throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, Resource.srcMemberCannotBeNullFormat, typeSource.Name, typeDestination.Name, propertyName));
+                    throw new InvalidOperationException(string.Format(CultureInfo.CurrentCulture, Properties.Resources.srcMemberCannotBeNullFormat, typeSource.Name, typeDestination.Name, propertyName));
 
                 if (propertyMap.IncludedMember?.ProjectToCustomSource != null)
                     propertyMapInfoList.Add(new PropertyMapInfo(propertyMap.IncludedMember.ProjectToCustomSource, new List<MemberInfo>()));
@@ -737,7 +773,7 @@ namespace AutoMapper.Extensions.ExpressionMapping
                 var childFullName = sourceFullName.Substring(sourceFullName.IndexOf(period, StringComparison.OrdinalIgnoreCase) + 1);
 
                 FindDestinationFullName(sourceMemberInfo.GetMemberType(), propertyMap.CustomMapExpression == null
-                    ? propertyMap.SourceMember.GetMemberType()
+                    ? propertyMap.SourceMembers.Last().GetMemberType()
                     : propertyMap.CustomMapExpression.ReturnType, childFullName, propertyMapInfoList);
             }
         }
