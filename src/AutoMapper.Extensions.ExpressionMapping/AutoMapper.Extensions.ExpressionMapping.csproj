@@ -3,15 +3,15 @@
   <PropertyGroup>
     <Summary>Expression mapping (OData) extensions for AutoMapper</Summary>
     <Description>Expression mapping (OData) extensions for AutoMapper</Description>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AssemblyOriginatorKeyFile>..\..\AutoMapper.snk</AssemblyOriginatorKeyFile>
     <SignAssembly>true</SignAssembly>
     <PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
     <PackageId>AutoMapper.Extensions.ExpressionMapping</PackageId>
-    <PackageIconUrl>https://s3.amazonaws.com/automapper/icon.png</PackageIconUrl>
-    <PackageProjectUrl>http://automapper.org</PackageProjectUrl>
-    <PackageLicenseUrl>https://github.com/AutoMapper/AutoMapper.Extensions.ExpressionMapping/blob/master/LICENSE</PackageLicenseUrl>
+		<PackageIcon>icon.png</PackageIcon>
+    <PackageProjectUrl>https://automapper.org</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/Amtote/AutoMapper.Extensions.ExpressionMapping</RepositoryUrl>
     <MinVerDefaultPreReleasePhase>amtote</MinVerDefaultPreReleasePhase>
@@ -24,13 +24,32 @@
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
 
+	<ItemGroup>
+		<None Include="..\..\icon.png" Pack="true" PackagePath="" />
+	</ItemGroup>
+
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="[11.0.0,12.0.0)" />
+    <PackageReference Include="AutoMapper" Version="[13.0.0,14.0.0)" />
     <PackageReference Include="MinVer" Version="2.3.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.SourceLink.GitHub" Version="1.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Resources.Designer.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
   </ItemGroup>
 
 </Project>
